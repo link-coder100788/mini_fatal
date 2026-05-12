@@ -151,8 +151,6 @@
 
 #ifndef MINI_FATAL_H
 #define MINI_FATAL_H
-#include <iostream>
-#include <ostream>
 
 void mf_fatal_at_impl(const char* msg, const char* file, int line);
 
@@ -167,6 +165,8 @@ MF_Context mf_get_context_impl(const char* msg, const char* file, int line);
 #ifdef __cplusplus
 
 #include <vector>
+#include <iostream>
+#include <ostream>
 
 namespace mf {
     class Context {
