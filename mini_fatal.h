@@ -196,19 +196,38 @@ void mf_dump_stacktrace();
 #endif
 
 #ifdef MF_NO_STACKTRACE
-#define DUMP_STACKTRACE() ((void)0)
+
+#define DUMP_STACKTRACE() ((void) 0)
+
 #else
+
 #define DUMP_STACKTRACE() mf_dump_stacktrace()
+
+#endif
+
+#ifdef MF_ABRT_SIGABRT
+
+#define MF_ABRT() signal()
+
+#else
+
+#define MF_ABRT() abort()
+
 #endif
 
 #define MF_RED "\033[31m"
 #define MF_RESET "\033[0m"
+
+#define MF_MAJOR 0
+#define MF_MINOR 1
+#define MF_PATCH 0
 
 #ifdef MINI_FATAL_IMPLEMENTATION
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <signal.h>
 
 #if defined(__unix__) || defined(__APPLE__)
 
@@ -263,7 +282,7 @@ inline void mf_dump_stacktrace() {
 inline void mf_fatal(const char* msg) {
     fprintf(stderr, MF_RED "Fatal error: %s\n" MF_RESET, msg);
     DUMP_STACKTRACE();
-    abort();
+    MF_ABRT();
 }
 
 inline void mf_panic(const char* fmt, ...) {
@@ -274,7 +293,7 @@ inline void mf_panic(const char* fmt, ...) {
     fprintf(stderr, "\n" MF_RESET);
     va_end(args);
     DUMP_STACKTRACE();
-    abort();
+    MF_ABRT();
 }
 
 #endif
