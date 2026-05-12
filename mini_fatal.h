@@ -151,8 +151,55 @@
 
 #ifndef MINI_FATAL_H
 #define MINI_FATAL_H
+#include <iostream>
+#include <ostream>
 
 void mf_fatal_at_impl(const char* msg, const char* file, int line);
+
+typedef struct MF_Context {
+    const char* msg;
+    const char* file;
+    int line;
+} MF_Context;
+
+MF_Context mf_get_context_impl(const char* msg, const char* file, int line);
+
+#ifdef __cplusplus
+
+#include <vector>
+
+namespace mf {
+    class Context {
+        std::vector<MF_Context> stack;
+
+        void push(MF_Context context);
+        MF_Context pop();
+        void clear();
+        void dump();
+    };
+}
+
+inline void mf::Context::push(MF_Context context) {
+    stack.push_back(context);
+}
+
+inline MF_Context mf::Context::pop() {
+    auto back = stack.back();
+    stack.pop_back();
+    return back;
+}
+
+inline void mf::Context::clear() {
+    stack.clear();
+}
+
+inline void mf::Context::dump() {
+    for (auto& context : stack) {
+        std::cout << context.msg << " at " << context.file << ":" << context.line << std::endl;
+    }
+}
+
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -258,6 +305,16 @@ void mf_todo(const char* msg);
  */
 #define mf_fatal_at(msg) mf_fatal_at_impl(msg, __FILE__, __LINE__)
 
+void mf_context_push(MF_Context context);
+
+MF_Context mf_context_pop();
+
+void mf_context_clear();
+
+void mf_context_dump();
+
+#define mf_get_context(msg) mf_get_context_impl(msg, __FILE__, __LINE__)
+
 #ifndef MF_NO_STACKTRACE
 
 void mf_dump_stacktrace();
@@ -278,14 +335,8 @@ void mf_dump_stacktrace();
 
 #endif
 
-#ifdef MF_ABRT_SIGABRT
-
-#define MF_ABRT() signal()
-
-#else
-
+#ifndef MF_ABRT
 #define MF_ABRT() abort()
-
 #endif
 
 #define MF_RED "\033[31m"
@@ -302,6 +353,10 @@ void mf_dump_stacktrace();
 #define MF_TOSTRING_IMPL(x) #x
 
 #define MF_AT_HELPER __FILE__ ":" MF_TOSTRING(__LINE__)
+
+#ifndef MF_MAX_CONTEXT
+#define MF_MAX_CONTEXT 64
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -407,6 +462,11 @@ inline void mf_fatal_at_impl(const char* msg, const char* file, int line) {
     fprintf(stderr, MF_RED "Fatal error at " MF_RESET MF_YELLOW "%s:%d" MF_RESET MF_RED ": %s\n" MF_RESET, file, line, msg);
     DUMP_STACKTRACE();
     MF_ABRT();
+}
+
+inline MF_Context mf_get_context_impl(const char* msg, const char* file, int line) {
+    MF_Context context = {msg, file, line};
+    return context;
 }
 
 #endif
