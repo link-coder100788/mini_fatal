@@ -185,6 +185,77 @@ void mf_fatal(const char* msg);
  */
 void mf_panic(const char* fmt, ...);
 
+/**
+ * Logs a fatal error message to the standard error stream, dumps the current stack trace,
+ * and terminates the program immediately if the specified condition is met.
+ *
+ * This function is intended to be used in critical error scenarios where the program
+ * cannot continue execution due to a specific condition. It outputs the error message
+ * in red text (ANSI red color code) followed by the stack trace, providing helpful
+ * debugging details. If the condition is true, the program is aborted after logging the issue.
+ *
+ * @param condition The condition to evaluate. If this evaluates to a non-zero value,
+ *                  the function logs the error message and terminates the program.
+ * @param msg The fatal error message to log. This should describe the reason for the
+ *            failure in a way that aids debugging.
+ */
+void mf_fatal_if(int condition, const char* msg);
+
+/**
+ * Checks if the provided pointer is null, and if so, logs a fatal error message,
+ * dumps the current stack trace, and terminates the program immediately.
+ *
+ * This function is designed to catch and handle critical null-pointer errors that
+ * indicate unrecoverable issues in the program's execution. If the pointer is null,
+ * it outputs a detailed error message in red (ANSI red color code), followed by the
+ * stack trace to aid debugging. After logging, the program is aborted.
+ *
+ * @param ptr The pointer to check. If this pointer is null, a fatal error is logged.
+ * @param msg A descriptive error message explaining the context or reason for the
+ *            null-pointer check. This helps provide additional debugging information.
+ */
+void mf_fatal_if_null(const void* ptr, const char* msg);
+
+/**
+ * Logs an error message indicating that unreachable code has been executed,
+ * dumps the current stack trace for debugging purposes, and immediately terminates the program.
+ *
+ * This function should only be invoked in situations where the program has entered a
+ * state that was assumed to be impossible. It provides a mechanism to alert developers
+ * to such occurrences and facilitates debugging by outputting the stack trace.
+ *
+ * @param msg A message describing the context or reason for reaching the unreachable code.
+ */
+void mf_unreachable(const char* msg);
+
+/**
+ * Logs a "not yet implemented" message to the standard error stream, dumps the current stack trace,
+ * and terminates the program immediately.
+ *
+ * This function is used as a placeholder for functionality that has not yet been implemented.
+ * It outputs the provided message in red text (ANSI red color code) to help identify the issue,
+ * followed by the current stack trace for debugging. After logging, the program is aborted.
+ *
+ * @param msg A description of the functionality that is not yet implemented. This message
+ *            should explain the missing feature clearly to aid debugging and development.
+ */
+void mf_todo(const char* msg);
+
+/**
+ * Logs a fatal error message along with the file name and line number where the function
+ * was called, dumps the current stack trace, and terminates the program immediately.
+ *
+ * This function is intended to provide detailed debugging information in critical error
+ * scenarios. It outputs the error message prefixed with the file and line information
+ * in color-coded text (ANSI red and yellow color codes) for better readability, followed
+ * by a stack trace to help in diagnosing the issue. After logging, the program execution
+ * is forcibly terminated.
+ *
+ * @param msg The fatal error message to log. This should provide a clear description
+ *            of the error context for debugging purposes.
+ */
+void mf_fatal_at(const char* msg);
+
 #ifndef MF_NO_STACKTRACE
 
 void mf_dump_stacktrace();
@@ -216,6 +287,7 @@ void mf_dump_stacktrace();
 #endif
 
 #define MF_RED "\033[31m"
+#define MF_YELLOW "\033[33m"
 #define MF_RESET "\033[0m"
 
 #define MF_MAJOR 0
@@ -223,6 +295,10 @@ void mf_dump_stacktrace();
 #define MF_PATCH 0
 
 #ifdef MINI_FATAL_IMPLEMENTATION
+
+#define MF_TOSTRING(x) #x
+
+#define MF_AT_HELPER __FILE__ ":" MF_TOSTRING(__LINE__)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -292,6 +368,40 @@ inline void mf_panic(const char* fmt, ...) {
     vprintf(fmt, args);
     fprintf(stderr, "\n" MF_RESET);
     va_end(args);
+    DUMP_STACKTRACE();
+    MF_ABRT();
+}
+
+inline void mf_fatal_if(int condition, const char* msg) {
+    if (condition) {
+        fprintf(stderr, MF_RED "Fatal error: %s\n" MF_RESET, msg);
+        DUMP_STACKTRACE();
+        MF_ABRT();
+    }
+}
+
+inline void mf_fatal_if_null(const void* ptr, const char* msg) {
+    if (!ptr) {
+        fprintf(stderr, MF_RED "Fatal error: Pointer %p was null: %s\n" MF_RESET, ptr, msg);
+        DUMP_STACKTRACE();
+        MF_ABRT();
+    }
+}
+
+inline void mf_unreachable(const char* msg) {
+    fprintf(stderr, MF_RED "Unreachable code reached: %s\n" MF_RESET, msg);
+    DUMP_STACKTRACE();
+    MF_ABRT();
+}
+
+inline void mf_todo(const char* msg) {
+    fprintf(stderr, MF_RED "Not yet implemented: %s\n" MF_RESET, msg);
+    DUMP_STACKTRACE();
+    MF_ABRT();
+}
+
+inline void mf_fatal_at(const char* msg) {
+    fprintf(stderr, MF_RED "Fatal error at " MF_RESET MF_YELLOW MF_AT_HELPER MF_RESET MF_RED ": %s\n" MF_RESET, msg);
     DUMP_STACKTRACE();
     MF_ABRT();
 }
