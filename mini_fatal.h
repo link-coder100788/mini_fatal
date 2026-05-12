@@ -296,7 +296,8 @@ void mf_dump_stacktrace();
 
 #ifdef MINI_FATAL_IMPLEMENTATION
 
-#define MF_TOSTRING(x) #x
+#define MF_TOSTRING(x) MF_TOSTRING_IMPL(x)
+#define MF_TOSTRING_IMPL(x) #x
 
 #define MF_AT_HELPER __FILE__ ":" MF_TOSTRING(__LINE__)
 
