@@ -254,7 +254,7 @@ void mf_todo(const char* msg);
  * @param msg The fatal error message to log. This should provide a clear description
  *            of the error context for debugging purposes.
  */
-void mf_fatal_at(const char* msg);
+#define mf_fatal_at(msg) mf_fatal_at_impl(msg, __FILE__, __LINE__)
 
 #ifndef MF_NO_STACKTRACE
 
@@ -401,8 +401,8 @@ inline void mf_todo(const char* msg) {
     MF_ABRT();
 }
 
-inline void mf_fatal_at(const char* msg) {
-    fprintf(stderr, MF_RED "Fatal error at " MF_RESET MF_YELLOW MF_AT_HELPER MF_RESET MF_RED ": %s\n" MF_RESET, msg);
+inline void mf_fatal_at_impl(const char* msg, const char* file, int line) {
+    fprintf(stderr, MF_RED "Fatal error at " MF_RESET MF_YELLOW "%s:%d" MF_RESET MF_RED ": %s\n" MF_RESET, file, line, msg);
     DUMP_STACKTRACE();
     MF_ABRT();
 }
