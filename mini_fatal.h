@@ -152,6 +152,8 @@
 #ifndef MINI_FATAL_H
 #define MINI_FATAL_H
 
+void mf_fatal_at_impl(const char* msg, const char* file, int line);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
