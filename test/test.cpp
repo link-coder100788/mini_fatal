@@ -63,12 +63,25 @@ static int test_context_cpp(void) {
     return 0;
 }
 
+static int test_context_to_and_from_c_cpp(void) {
+    mf::Context context;
+    context.push(mf_get_context("testing mini_fatal.h in a cpp context"));
+    context.push(mf_get_context("running tests"));
+    context.push(mf_get_context("test_context_to_and_from_c_cpp"));
+    mf_context c_context = context.to_c_context(10);
+    mf::Context context_from_c = mf::Context::from_c_context(&c_context);
+    mf_context_destroy(&c_context);
+    context_from_c.dump();
+    return 0;
+}
+
 static const test_case tests[] = {
     RUN_TEST(test_version_macros_exist),
     RUN_TEST(test_color_macros_exist),
     RUN_TEST(test_public_api_symbols_compile),
     RUN_TEST(test_stacktrace_macro_compiles),
     RUN_TEST(test_context_cpp),
+    RUN_TEST(test_context_to_and_from_c_cpp),
 };
 
 int main(void) {

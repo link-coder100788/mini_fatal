@@ -187,13 +187,21 @@ namespace mf {
         void dump();
 
         static Context from_c_context(mf_context* ctx);
-        mf_context* to_c_context(size_t cap);
+        mf_context to_c_context(size_t cap);
     };
 }
 
 extern "C" {
+
 #endif
 
+/**
+ * Prints the version information of the Mini_Fatal library to the standard output.
+ *
+ * This function outputs the major, minor, and patch version numbers of the library
+ * in a formatted string. It provides a quick way to check the current version
+ * being used in the program.
+ */
 void mf_version();
 
 /**
@@ -361,7 +369,7 @@ mf_context_item mf_context_pop(mf_context* ctx);
  * error and terminates the program.
  *
  * This function is typically used to correctly deallocate and reset a context structure
- * when it is no longer needed, preventing memory leaks and leaving the object
+ * when it is no longer necessary, preventing memory leaks and leaving the object
  * in a safe, reusable state.
  *
  * @param ctx Pointer to the context to be destroyed. It must be a valid, non-null pointer.
@@ -475,7 +483,6 @@ inline void mf_dump_stacktrace() {
     free(symbol);
 
 #endif
-
 }
 
 #endif
@@ -590,10 +597,6 @@ inline mf_context_item mf_get_context_impl(const char* msg, const char* file, in
 
 #ifdef __cplusplus
 
-#include <vector>
-#include <iostream>
-#include <ostream>
-
 inline void mf::Context::push(mf_context_item context) {
     stack.push_back(context);
 }
@@ -624,12 +627,16 @@ inline mf::Context mf::Context::from_c_context(mf_context* ctx) {
     return context;
 }
 
-inline mf_context* mf::Context::to_c_context(size_t cap) {
+inline mf_context mf::Context::to_c_context(size_t cap) {
     if (cap < stack.size()) mf_panic("Capacity of %d is too small for a size of %d!", cap, stack.size());
-    mf_context* ctx = (mf_context*)malloc(cap * sizeof(mf_context));
+    mf_context ctx;
+    ctx.data = (mf_context_item*)malloc(cap * sizeof(mf_context_item));
+    ctx.capacity = cap;
+    ctx.size = 0;
     for (auto& item : stack) {
-        mf_context_push(ctx, mf_context_item { item.msg, item.file, item.line });
+        mf_context_push(&ctx, mf_context_item { item.msg, item.file, item.line });
     }
+    return ctx;
 }
 
 #endif
