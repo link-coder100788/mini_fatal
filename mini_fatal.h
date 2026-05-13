@@ -171,8 +171,30 @@ typedef struct mf_context {
 } mf_context;
 
 #ifdef __cplusplus
+
+#include <vector>
+#include <iostream>
+#include <ostream>
+
+namespace mf {
+    class Context {
+    public:
+        std::vector<mf_context_item> stack;
+
+        void push(mf_context_item context);
+        mf_context_item pop();
+        void clear();
+        void dump();
+
+        static Context from_c_context(mf_context* ctx);
+        mf_context* to_c_context(size_t cap);
+    };
+}
+
 extern "C" {
 #endif
+
+void mf_version();
 
 /**
  * Logs a fatal error message to the standard error stream, dumps the current stack trace,
@@ -458,6 +480,10 @@ inline void mf_dump_stacktrace() {
 
 #endif
 
+inline void mf_version() {
+    printf("Mini_Fatal %d.%d.%d\n", MF_MAJOR, MF_MINOR, MF_PATCH);
+}
+
 inline void mf_fatal(const char* msg) {
     fprintf(stderr, MF_RED "Fatal error: %s\n" MF_RESET, msg);
     DUMP_STACKTRACE();
@@ -567,21 +593,6 @@ inline mf_context_item mf_get_context_impl(const char* msg, const char* file, in
 #include <vector>
 #include <iostream>
 #include <ostream>
-
-namespace mf {
-    class Context {
-    public:
-        std::vector<mf_context_item> stack;
-
-        void push(mf_context_item context);
-        mf_context_item pop();
-        void clear();
-        void dump();
-
-        static Context from_c_context(mf_context* ctx);
-        mf_context* to_c_context(size_t cap);
-    };
-}
 
 inline void mf::Context::push(mf_context_item context) {
     stack.push_back(context);
