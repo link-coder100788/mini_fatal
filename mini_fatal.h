@@ -153,6 +153,7 @@
 #define MINI_FATAL_H
 
 #include <stdlib.h>
+#include <pthread.h>
 
 void mf_fatal_at_impl(const char* msg, const char* file, int line);
 
@@ -160,9 +161,13 @@ typedef struct mf_context_item {
     const char* msg;
     const char* file;
     int line;
+    int col;
+    const char* func;
+    pthread_t thread_id;
+    pid_t pid;
 } mf_context_item;
 
-mf_context_item mf_get_context_impl(const char* msg, const char* file, int line);
+mf_context_item mf_get_context_impl(const char* msg, const char* file, int line, int col, const char* func, pthread_t thread_id, pid_t pid);
 
 typedef struct mf_context {
     mf_context_item* data;
@@ -388,7 +393,7 @@ void mf_context_destroy(mf_context* ctx);
  */
 void mf_context_dump(mf_context* ctx);
 
-#define mf_get_context(msg) mf_get_context_impl(msg, __FILE__, __LINE__)
+#define mf_get_context(msg) mf_get_context_impl(msg, __FILE__, __LINE__, __COLUMN__, __PRETTY_FUNCTION__, pthread_self(), getpid())
 
 #ifndef MF_NO_STACKTRACE
 
@@ -421,6 +426,10 @@ void mf_dump_stacktrace();
 #define MF_MAJOR 0
 #define MF_MINOR 1
 #define MF_PATCH 0
+
+#ifndef __COLUMN__
+#define __COLUMN__ -1
+#endif
 
 #ifdef MINI_FATAL_IMPLEMENTATION
 
@@ -586,12 +595,19 @@ inline void mf_context_dump(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
     for (size_t i = 0; i < ctx->size; i++) {
         mf_context_item* item = &ctx->data[i];
-        printf("%s at %s:%d\n", item->msg, item->file, item->line);
+        printf("%s at %s:%d:%d in %s threadid: %p pid: %d\n", item->msg, item->file, item->line, item->col, item->func, item->thread_id, item->pid);
     }
 }
 
-inline mf_context_item mf_get_context_impl(const char* msg, const char* file, int line) {
-    mf_context_item context = {msg, file, line};
+inline mf_context_item mf_get_context_impl(const char* msg, const char* file, int line, int col, const char* func, pthread_t threadid, pid_t pid) {
+    mf_context_item context;
+    context.msg = msg;
+    context.file = file;
+    context.line = line;
+    context.col = col;
+    context.func = func;
+    context.thread_id = threadid;
+    context.pid = pid;
     return context;
 }
 
@@ -613,7 +629,20 @@ inline void mf::Context::clear() {
 
 inline void mf::Context::dump() {
     for (auto& context : stack) {
-        std::cout << context.msg << " at " << context.file << ":" << context.line << std::endl;
+        std::cout << context.msg
+        << " at "
+        << context.file
+        << ":"
+        << context.line
+        << ":"
+        << context.col
+        << " in "
+        << context.func
+        << " threadid:  "
+        << context.thread_id
+        << " pid: "
+        << context.pid
+        << std::endl;
     }
 }
 
@@ -622,7 +651,7 @@ inline mf::Context mf::Context::from_c_context(mf_context* ctx) {
     Context context;
     for (size_t i = 0; i < ctx->size; i++) {
         mf_context_item* item = &ctx->data[i];
-        context.push(mf_context_item { item->msg, item->file, item->line });
+        context.push(mf_context_item { item->msg, item->file, item->line, item->col, item->func, item->thread_id, item->pid });
     }
     return context;
 }
@@ -634,7 +663,7 @@ inline mf_context mf::Context::to_c_context(size_t cap) {
     ctx.capacity = cap;
     ctx.size = 0;
     for (auto& item : stack) {
-        mf_context_push(&ctx, mf_context_item { item.msg, item.file, item.line });
+        mf_context_push(&ctx, mf_context_item { item.msg, item.file, item.line, item.col, item.func, item.thread_id, item.pid });
     }
     return ctx;
 }
