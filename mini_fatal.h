@@ -185,6 +185,9 @@ namespace mf {
         mf_context_item pop();
         void clear();
         void dump();
+
+        static Context from_c_context(mf_context* ctx);
+        mf_context* to_c_context(size_t cap);
     };
 }
 
@@ -393,7 +396,7 @@ void mf_context_destroy(mf_context* ctx);
  * This method logs or outputs the current state of the context to help diagnose issues or analyze
  * the current configuration set within the framework.
  *
- * @param context A pointer to the context object containing the state information to be dumped.
+ * @param ctx A pointer to the context object containing the state information to be dumped.
  *                This must be a valid, initialized context.
  */
 void mf_context_dump(mf_context* ctx);
@@ -601,6 +604,28 @@ inline mf_context_item mf_get_context_impl(const char* msg, const char* file, in
     mf_context_item context = {msg, file, line};
     return context;
 }
+
+#ifdef __cplusplus
+
+inline mf::Context mf::Context::from_c_context(mf_context* ctx) {
+    mf_fatal_if_null(ctx, "Context is null");
+    Context context;
+    for (size_t i = 0; i < ctx->size; i++) {
+        mf_context_item* item = &ctx->data[i];
+        context.push(mf_context_item { item->msg, item->file, item->line });
+    }
+    return context;
+}
+
+inline mf_context* mf::Context::to_c_context(size_t cap) {
+    if (cap < stack.size()) mf_panic("Capacity of %d is too small for a size of %d!", cap, stack.size());
+    mf_context* ctx = (mf_context*)malloc(cap * sizeof(mf_context));
+    for (auto& item : stack) {
+        mf_context_push(ctx, mf_context_item { item.msg, item.file, item.line });
+    }
+}
+
+#endif
 
 #endif
 
