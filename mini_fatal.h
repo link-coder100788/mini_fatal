@@ -171,49 +171,6 @@ typedef struct mf_context {
 } mf_context;
 
 #ifdef __cplusplus
-
-#include <vector>
-#include <iostream>
-#include <ostream>
-
-namespace mf {
-    class Context {
-    public:
-        std::vector<mf_context_item> stack;
-
-        void push(mf_context_item context);
-        mf_context_item pop();
-        void clear();
-        void dump();
-
-        static Context from_c_context(mf_context* ctx);
-        mf_context* to_c_context(size_t cap);
-    };
-}
-
-inline void mf::Context::push(mf_context_item context) {
-    stack.push_back(context);
-}
-
-inline mf_context_item mf::Context::pop() {
-    auto back = stack.back();
-    stack.pop_back();
-    return back;
-}
-
-inline void mf::Context::clear() {
-    stack.clear();
-}
-
-inline void mf::Context::dump() {
-    for (auto& context : stack) {
-        std::cout << context.msg << " at " << context.file << ":" << context.line << std::endl;
-    }
-}
-
-#endif
-
-#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -606,6 +563,45 @@ inline mf_context_item mf_get_context_impl(const char* msg, const char* file, in
 }
 
 #ifdef __cplusplus
+
+#include <vector>
+#include <iostream>
+#include <ostream>
+
+namespace mf {
+    class Context {
+    public:
+        std::vector<mf_context_item> stack;
+
+        void push(mf_context_item context);
+        mf_context_item pop();
+        void clear();
+        void dump();
+
+        static Context from_c_context(mf_context* ctx);
+        mf_context* to_c_context(size_t cap);
+    };
+}
+
+inline void mf::Context::push(mf_context_item context) {
+    stack.push_back(context);
+}
+
+inline mf_context_item mf::Context::pop() {
+    auto back = stack.back();
+    stack.pop_back();
+    return back;
+}
+
+inline void mf::Context::clear() {
+    stack.clear();
+}
+
+inline void mf::Context::dump() {
+    for (auto& context : stack) {
+        std::cout << context.msg << " at " << context.file << ":" << context.line << std::endl;
+    }
+}
 
 inline mf::Context mf::Context::from_c_context(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
