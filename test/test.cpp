@@ -1,8 +1,7 @@
 #define MINI_FATAL_IMPLEMENTATION
 #define MF_NO_STACKTRACE
-#include "../mini_fatal.h"
-
 #include <cstdio>
+#include "../mini_fatal.h"
 
 typedef int (*test_fn)(void);
 
@@ -54,11 +53,22 @@ static int test_stacktrace_macro_compiles(void) {
     return 0;
 }
 
+static int test_context_cpp(void) {
+    mf::Context context;
+    context.push(mf_get_context("testing mini_fatal.h in a cpp context"));
+    context.push(mf_get_context("running tests"));
+    context.push(mf_get_context("test_context_cpp"));
+    context.dump();
+    context.clear();
+    return 0;
+}
+
 static const test_case tests[] = {
     RUN_TEST(test_version_macros_exist),
     RUN_TEST(test_color_macros_exist),
     RUN_TEST(test_public_api_symbols_compile),
     RUN_TEST(test_stacktrace_macro_compiles),
+    RUN_TEST(test_context_cpp),
 };
 
 int main(void) {

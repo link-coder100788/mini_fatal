@@ -170,6 +170,7 @@ MF_Context mf_get_context_impl(const char* msg, const char* file, int line);
 
 namespace mf {
     class Context {
+    public:
         std::vector<MF_Context> stack;
 
         void push(MF_Context context);
