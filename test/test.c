@@ -54,11 +54,22 @@ static int test_stacktrace_macro_compiles(void) {
     return 0;
 }
 
+static int test_context_c(void) {
+    MF_Context ctx = mf_create_context(10);
+    mf_context_push(&ctx, mf_get_context("testing mini_fatal.h in a c context"));
+    mf_context_push(&ctx, mf_get_context("running tests"));
+    mf_context_push(&ctx, mf_get_context("test_context_c"));
+    mf_context_dump(&ctx);
+    mf_context_destroy(&ctx);
+    return 0;
+}
+
 static const test_case tests[] = {
     RUN_TEST(test_version_macros_exist),
     RUN_TEST(test_color_macros_exist),
     RUN_TEST(test_public_api_symbols_compile),
     RUN_TEST(test_stacktrace_macro_compiles),
+    RUN_TEST(test_context_c),
 };
 
 int main(void) {
