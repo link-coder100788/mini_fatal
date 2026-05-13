@@ -156,19 +156,19 @@
 
 void mf_fatal_at_impl(const char* msg, const char* file, int line);
 
-typedef struct MF_Context_Item {
+typedef struct mf_context_item {
     const char* msg;
     const char* file;
     int line;
-} MF_Context_Item;
+} mf_context_item;
 
-MF_Context_Item mf_get_context_impl(const char* msg, const char* file, int line);
+mf_context_item mf_get_context_impl(const char* msg, const char* file, int line);
 
-typedef struct MF_Context {
-    MF_Context_Item* data;
+typedef struct mf_context {
+    mf_context_item* data;
     size_t size;
     size_t capacity;
-} MF_Context;
+} mf_context;
 
 #ifdef __cplusplus
 
@@ -179,20 +179,20 @@ typedef struct MF_Context {
 namespace mf {
     class Context {
     public:
-        std::vector<MF_Context_Item> stack;
+        std::vector<mf_context_item> stack;
 
-        void push(MF_Context_Item context);
-        MF_Context_Item pop();
+        void push(mf_context_item context);
+        mf_context_item pop();
         void clear();
         void dump();
     };
 }
 
-inline void mf::Context::push(MF_Context_Item context) {
+inline void mf::Context::push(mf_context_item context) {
     stack.push_back(context);
 }
 
-inline MF_Context_Item mf::Context::pop() {
+inline mf_context_item mf::Context::pop() {
     auto back = stack.back();
     stack.pop_back();
     return back;
@@ -338,7 +338,7 @@ void mf_fatal_msg(const char* fullmsg);
  *         capacity. If memory allocation fails, mf_fatal is called through
  *         mf_fatal_if_null.
  */
-MF_Context mf_create_context(size_t cap);
+mf_context mf_create_context(size_t cap);
 
 /**
  * Pushes a new context item to the given context stack. If the stack is full (i.e.,
@@ -354,7 +354,7 @@ MF_Context mf_create_context(size_t cap);
  * @param context The context item to push onto the stack. Represents the
  *                information to be added to the context structure.
  */
-void mf_context_push(MF_Context* ctx, MF_Context_Item context);
+void mf_context_push(mf_context* ctx, mf_context_item context);
 
 /**
  * Removes and returns the last item from the given context's data stack.
@@ -371,7 +371,7 @@ void mf_context_push(MF_Context* ctx, MF_Context_Item context);
  * @return The last item in the context's stack. If the stack is empty,
  *         an `MF_Context_Item` with default-initialized members is returned.
  */
-MF_Context_Item mf_context_pop(MF_Context* ctx);
+mf_context_item mf_context_pop(mf_context* ctx);
 
 /**
  * Releases all resources associated with the specified context and resets its fields
@@ -385,7 +385,7 @@ MF_Context_Item mf_context_pop(MF_Context* ctx);
  * @param ctx Pointer to the context to be destroyed. It must be a valid, non-null pointer.
  *            If the pointer is null, a fatal error is reported, and the program is aborted.
  */
-void mf_context_destroy(MF_Context* ctx);
+void mf_context_destroy(mf_context* ctx);
 
 /**
  * Dumps the current context information for debugging purposes.
@@ -396,7 +396,7 @@ void mf_context_destroy(MF_Context* ctx);
  * @param context A pointer to the context object containing the state information to be dumped.
  *                This must be a valid, initialized context.
  */
-void mf_context_dump(MF_Context* ctx);
+void mf_context_dump(mf_context* ctx);
 
 #define mf_get_context(msg) mf_get_context_impl(msg, __FILE__, __LINE__)
 
@@ -555,16 +555,16 @@ inline void mf_fatal_msg(const char* fullmsg) {
     MF_ABRT();
 }
 
-inline MF_Context mf_create_context(size_t cap) {
-    MF_Context ctx;
-    ctx.data = (MF_Context_Item*)malloc(cap * sizeof(MF_Context_Item));
+inline mf_context mf_create_context(size_t cap) {
+    mf_context ctx;
+    ctx.data = (mf_context_item*)malloc(cap * sizeof(mf_context_item));
     mf_fatal_if_null(ctx.data, "Failed to allocate context data");
     ctx.size = 0;
     ctx.capacity = cap;
     return ctx;
 }
 
-inline void mf_context_push(MF_Context* ctx, MF_Context_Item context) {
+inline void mf_context_push(mf_context* ctx, mf_context_item context) {
     mf_fatal_if_null(ctx, "Context is null");
     if (ctx->size >= ctx->capacity) {
         mf_fatal_at("Context overflow");
@@ -572,16 +572,16 @@ inline void mf_context_push(MF_Context* ctx, MF_Context_Item context) {
     ctx->data[ctx->size++] = context;
 }
 
-inline MF_Context_Item mf_context_pop(MF_Context* ctx) {
+inline mf_context_item mf_context_pop(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
     if (ctx->size == 0) {
-        MF_Context_Item empty = {0};
+        mf_context_item empty = {0};
         return empty;
     }
     return ctx->data[--ctx->size];
 }
 
-inline void mf_context_destroy(MF_Context* ctx) {
+inline void mf_context_destroy(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
     free(ctx->data);
     ctx->data = NULL;
@@ -589,16 +589,16 @@ inline void mf_context_destroy(MF_Context* ctx) {
     ctx->capacity = 0;
 }
 
-inline void mf_context_dump(MF_Context* ctx) {
+inline void mf_context_dump(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
     for (size_t i = 0; i < ctx->size; i++) {
-        MF_Context_Item* item = &ctx->data[i];
+        mf_context_item* item = &ctx->data[i];
         printf("%s at %s:%d\n", item->msg, item->file, item->line);
     }
 }
 
-inline MF_Context_Item mf_get_context_impl(const char* msg, const char* file, int line) {
-    MF_Context_Item context = {msg, file, line};
+inline mf_context_item mf_get_context_impl(const char* msg, const char* file, int line) {
+    mf_context_item context = {msg, file, line};
     return context;
 }
 

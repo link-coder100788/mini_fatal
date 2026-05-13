@@ -55,7 +55,7 @@ static int test_stacktrace_macro_compiles(void) {
 }
 
 static int test_context_c(void) {
-    MF_Context ctx = mf_create_context(10);
+    mf_context ctx = mf_create_context(10);
     mf_context_push(&ctx, mf_get_context("testing mini_fatal.h in a c context"));
     mf_context_push(&ctx, mf_get_context("running tests"));
     mf_context_push(&ctx, mf_get_context("test_context_c"));
