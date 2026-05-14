@@ -175,6 +175,19 @@ typedef struct mf_context {
     size_t capacity;
 } mf_context;
 
+typedef void (*mf_callback_t)(void);
+
+typedef struct mf_callback {
+    mf_callback_t cb;
+    mf_context_item context;
+} mf_callback;
+
+typedef struct mf_callback_stack {
+    mf_callback* callback;
+    size_t size;
+    size_t capacity;
+} mf_callback_stack;
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -422,6 +435,16 @@ void mf_fatal_dump(mf_context* ctx, const char* msg);
  */
 void mf_check_alloc(const void* ptr);
 
+mf_callback_stack mf_create_callback_stack(size_t cap);
+
+void mf_callback_push(mf_callback_stack* stack, mf_callback callback);
+
+mf_callback mf_callback_pop(mf_callback_stack* stack);
+
+void mf_callback_destroy(mf_callback_stack* stack);
+
+void mf_fatal_callback(mf_callback_stack* stack);
+
 #ifndef MF_NO_STACKTRACE
 
 void mf_dump_stacktrace();
@@ -491,9 +514,15 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 #define MF_ABRT() abort()
 #endif
 
+#ifndef MF_DISABLE_COLOR
 #define MF_RED "\033[31m"
 #define MF_YELLOW "\033[33m"
 #define MF_RESET "\033[0m"
+#else
+#define MF_RED ""
+#define MF_YELLOW ""
+#define MF_RESET ""
+#endif
 
 #define MF_MAJOR 0
 #define MF_MINOR 1
@@ -690,6 +719,49 @@ inline void mf_fatal_dump(mf_context* ctx, const char* msg) {
 
 inline void mf_check_alloc(const void* ptr) {
     mf_fatal_if_null(ptr, "Memory allocation failed");
+}
+
+inline mf_callback_stack mf_create_callback_stack(size_t cap) {
+    mf_callback_stack stack;
+    stack.callback = (mf_callback*)malloc(cap * sizeof(mf_callback));
+    mf_fatal_if_null(stack.callback, "Failed to allocate callback stack");
+    stack.size = 0;
+    stack.capacity = cap;
+    return stack;
+}
+
+inline void mf_callback_push(mf_callback_stack* stack, mf_callback callback) {
+    mf_fatal_if_null(stack, "Callback stack is null");
+    if (stack->size >= stack->capacity) {
+        mf_fatal_at("Callback stack overflow");
+    }
+    stack->callback[stack->size++] = callback;
+}
+
+inline mf_callback mf_callback_pop(mf_callback_stack* stack) {
+    mf_fatal_if_null(stack, "Callback stack is null");
+    if (stack->size == 0) {
+        mf_callback empty = {0};
+        return empty;
+    }
+    return stack->callback[--stack->size];
+}
+
+inline void mf_callback_destroy(mf_callback_stack* stack) {
+    mf_fatal_if_null(stack, "Callback stack is null");
+    free(stack->callback);
+    stack->callback = NULL;
+    stack->size = 0;
+    stack->capacity = 0;
+}
+
+inline void mf_fatal_callback(mf_callback_stack* stack) {
+    for (size_t i = 0; i < stack->size; i++) {
+        mf_callback* callback = &stack->callback[i];
+        callback->cb();
+    }
+    DUMP_STACKTRACE();
+    MF_ABRT();
 }
 
 #ifdef __cplusplus
