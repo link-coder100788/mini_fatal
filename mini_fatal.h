@@ -207,6 +207,19 @@ namespace mf {
         static Context from_c_context(mf_context* ctx);
         mf_context to_c_context(size_t cap);
     };
+
+    class Callbacks {
+    public:
+        std::vector<mf_callback> stack;
+
+        void push(mf_callback callback);
+        mf_callback pop();
+        void clear();
+        void fatal();
+
+        static Callbacks from_c_callbacks(mf_callback_stack* stack);
+        mf_callback_stack to_c_callbacks(size_t cap);
+    };
 }
 
 extern "C" {
@@ -819,6 +832,50 @@ inline mf_context mf::Context::to_c_context(size_t cap) {
         mf_context_push(&ctx, mf_context_item { item.msg, item.file, item.line, item.col, item.func, item.thread_id, item.pid });
     }
     return ctx;
+}
+
+inline void mf::Callbacks::push(mf_callback callback) {
+    stack.push_back(callback);
+}
+
+inline mf_callback mf::Callbacks::pop() {
+    auto back = stack.back();
+    stack.pop_back();
+    return back;
+}
+
+inline void mf::Callbacks::clear() {
+    stack.clear();
+}
+
+inline void mf::Callbacks::fatal() {
+    for (auto& c : stack) {
+        c.cb();
+    }
+    DUMP_STACKTRACE();
+    MF_ABRT();
+}
+
+inline mf::Callbacks mf::Callbacks::from_c_callbacks(mf_callback_stack* stack) {
+    mf_fatal_if_null(stack, "Callbacks stack is null");
+    Callbacks callbacks;
+    for (size_t i = 0; i < stack->size; i++) {
+        mf_callback* callback = &stack->callback[i];
+        callbacks.push(mf_callback { callback->cb });
+    }
+    return callbacks;
+}
+
+inline mf_callback_stack mf::Callbacks::to_c_callbacks(size_t cap) {
+    if (cap < stack.size()) mf_panic("Capacity of %d is too small for a size of %d!", cap, stack.size());
+    mf_callback_stack callbacks;
+    callbacks.callback = (mf_callback*)malloc(cap * sizeof(mf_callback));
+    callbacks.capacity = cap;
+    callbacks.size = 0;
+    for (auto& c : stack) {
+        mf_callback_push(&callbacks, mf_callback { c.cb });
+    }
+    return callbacks;
 }
 
 #endif
