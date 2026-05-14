@@ -395,9 +395,81 @@ void mf_context_dump(mf_context* ctx);
 
 #define mf_get_context(msg) mf_get_context_impl(msg, __FILE__, __LINE__, __COLUMN__, __PRETTY_FUNCTION__, pthread_self(), getpid())
 
+/**
+ * Dumps the provided context information and terminates the program with a fatal error message.
+ *
+ * This function combines the functionality of dumping the details of the given
+ * context and reporting a fatal error. It first calls `mf_context_dump` to output
+ * all context details, ensuring that all relevant diagnostic information is available.
+ * Then, it invokes `mf_fatal` to display the fatal error message and terminate
+ * the program execution.
+ *
+ * @param ctx A pointer to the mf_context structure containing context information to be dumped.
+ *            Must not be null; otherwise, an error is reported.
+ * @param msg A constant character pointer representing the fatal error message to be displayed.
+ *            This provides additional details about the cause of the termination.
+ */
+void mf_fatal_dump(mf_context* ctx, const char* msg);
+
+/**
+ * Validates the success of a memory allocation operation.
+ *
+ * This function checks whether a memory allocation pointer is null, indicating
+ * a failure in the allocation process. If the allocation fails, the program
+ * will terminate with an error message.
+ *
+ * @param ptr The pointer to the newly allocated memory to be validated.
+ */
+void mf_check_alloc(const void* ptr);
+
 #ifndef MF_NO_STACKTRACE
 
 void mf_dump_stacktrace();
+
+#endif
+
+#ifdef MF_ENABLE_STANDALONE
+
+[[noreturn]] static void mf_abort_standalone() {
+#if defined(__clang__) || defined(__GNUC__)
+    __builtin_trap();
+#elif defined(_MSC_VER)
+    __debugbreak();
+#elif defined(__x86_64__) || defined(__i386__)
+    __asm__ volatile("int3");
+    __asm__ volatile("ud2");
+#elif defined (__aarch64__)
+    __asm__ volatile("brk #0");
+#elif defined(__arm__)
+    __asm__ volatile(".inst 0xe7f001f0");
+#elif defined(__riscv)
+    __asm__ volatile("ebreak");
+#endif
+    for (;;) {
+    }
+}
+
+static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
+#if defined(__APPLE__) && defined(__aarch64__)
+    register long x0 __asm__("x0") = 2;
+    register const char* x1 __asm__("x1") = data;
+    register size_t x2 __asm__("x2") = len;
+    register long x16 __asm__("x16") = 0x2000004;
+
+    __asm__ volatile(
+        "svc #0x80"
+        : "+r"(x0)
+        : "r"(x1), "r"(x2), "r"(x16)
+        : "memory"
+    );
+
+    return x0;
+#else
+    (void)data;
+    (void)len;
+    return -1;
+#endif
+}
 
 #endif
 
@@ -609,6 +681,15 @@ inline mf_context_item mf_get_context_impl(const char* msg, const char* file, in
     context.thread_id = threadid;
     context.pid = pid;
     return context;
+}
+
+inline void mf_fatal_dump(mf_context* ctx, const char* msg) {
+    mf_context_dump(ctx);
+    mf_fatal(msg);
+}
+
+inline void mf_check_alloc(const void* ptr) {
+    mf_fatal_if_null(ptr, "Memory allocation failed");
 }
 
 #ifdef __cplusplus
