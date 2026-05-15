@@ -195,6 +195,18 @@ typedef struct mf_callback_stack {
 #include <ostream>
 
 namespace mf {
+    void mf_version_cpp();
+
+    void mf_fatal_cpp(std::string msg);
+
+    void mf_fatal_if_cpp(int condition, std::string msg);
+
+    void mf_fatal_if_null_cpp(const void* ptr, std::string msg);
+
+    void mf_unreachable_cpp(std::string msg);
+
+    void mf_todo_cpp(std::string msg);
+
     class Context {
     public:
         std::vector<mf_context_item> stack;
@@ -448,14 +460,66 @@ void mf_fatal_dump(mf_context* ctx, const char* msg);
  */
 void mf_check_alloc(const void* ptr);
 
+/**
+ * Creates and initializes a callback stack with the specified capacity.
+ *
+ * This function allocates memory for a stack of callback functions and initializes
+ * its size and capacity. The capacity defines how many callback functions the stack
+ * can hold. If memory allocation fails, the function terminates the program with
+ * an error message and a stack trace.
+ *
+ * @param cap The desired capacity of the callback stack.
+ * @return An initialized mf_callback_stack structure with the specified capacity.
+ */
 mf_callback_stack mf_create_callback_stack(size_t cap);
 
+/**
+ * Pushes a callback onto the callback stack.
+ *
+ * This function adds a new callback to the specified stack. If the stack is null,
+ * or if the stack's capacity is exceeded, a fatal error is triggered.
+ *
+ * @param stack Pointer to the callback stack where the callback should be pushed.
+ * @param callback The callback to be added to the stack.
+ */
 void mf_callback_push(mf_callback_stack* stack, mf_callback callback);
 
+/**
+ * Removes and returns the top callback from the specified callback stack.
+ *
+ * This function decreases the size of the callback stack and retrieves the
+ * callback at the previous top position. If the stack is empty, it returns
+ * an empty callback structure.
+ *
+ * @param stack A pointer to the mf_callback_stack from which the callback will be popped.
+ *              The function will terminate with a fatal error if this pointer is null.
+ * @return The top mf_callback from the stack. If the stack is empty, an empty
+ *         mf_callback structure is returned.
+ */
 mf_callback mf_callback_pop(mf_callback_stack* stack);
 
+/**
+ * Destroys the callback stack and frees associated resources.
+ *
+ * This function clears the specified callback stack by releasing the memory
+ * allocated for the callbacks, resetting the stack properties, and ensuring
+ * that the stack is in a safe, empty state. If the provided stack pointer is null,
+ * the program will terminate with an appropriate error message.
+ *
+ * @param stack A pointer to the mf_callback_stack to be destroyed. The pointer must not be null.
+ */
 void mf_callback_destroy(mf_callback_stack* stack);
 
+/**
+ * Executes all the registered callbacks in a callback stack, then generates a stack trace and aborts the program.
+ *
+ * This function iterates through each callback present in the provided callback stack
+ * and executes them. After all callbacks are executed, it generates and dumps
+ * the current stack trace for diagnostic purposes and then forcibly terminates
+ * the program using an abort operation.
+ *
+ * @param stack A pointer to an `mf_callback_stack` structure containing the callbacks to be executed.
+ */
 void mf_fatal_callback(mf_callback_stack* stack);
 
 #ifndef MF_NO_STACKTRACE
@@ -778,6 +842,30 @@ inline void mf_fatal_callback(mf_callback_stack* stack) {
 }
 
 #ifdef __cplusplus
+
+inline void mf::mf_version_cpp() {
+    std::cout << "Mini_Fatal " << MF_MAJOR << "." << MF_MINOR << "." << MF_PATCH << std::endl;
+}
+
+inline void mf::mf_fatal_cpp(std::string msg) {
+    mf_fatal(msg.c_str());
+}
+
+inline void mf::mf_fatal_if_cpp(int condition, std::string msg) {
+    if (condition) mf_fatal(msg.c_str());
+}
+
+inline void mf::mf_fatal_if_null_cpp(const void* ptr, std::string msg) {
+    if (!ptr) mf_fatal(msg.c_str());
+}
+
+inline void mf::mf_unreachable_cpp(std::string msg) {
+    mf_unreachable(msg.c_str());
+}
+
+inline void mf::mf_todo_cpp(std::string msg) {
+    mf_todo(msg.c_str());
+}
 
 inline void mf::Context::push(mf_context_item context) {
     stack.push_back(context);
