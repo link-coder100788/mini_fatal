@@ -188,6 +188,8 @@ typedef struct mf_callback_stack {
     size_t capacity;
 } mf_callback_stack;
 
+typedef void* mf_assertable_t;
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -534,6 +536,39 @@ void mf_fatal_callback(mf_callback_stack* stack);
  */
 void mf_fatal_signal(int sig);
 
+/**
+ * Compares two memory regions for equality and triggers a fatal error if they are not equal.
+ *
+ * This function verifies whether two memory regions, represented by `a` and `b`, are identical
+ * by comparing their contents up to the specified `size`. If the regions are not equal, it
+ * invokes a fatal error handling routine with the specified error message.
+ *
+ * @warning Compares raw memory. Use on types with a set and distinct size and format
+ *
+ * @param a Pointer to the first memory region to compare.
+ * @param b Pointer to the second memory region to compare.
+ * @param size The number of bytes to compare between the two memory regions.
+ * @param msg A custom error message to display if the memory regions are not equal.
+ */
+void mf_assert_eq(mf_assertable_t a, mf_assertable_t b, size_t size, const char* msg);
+
+/**
+ * Asserts that two memory blocks are not equal in content.
+ *
+ * This function compares two memory blocks of the specified size. If the memory
+ * blocks are equal, it triggers a fatal error and outputs the provided error message.
+ * This is useful for ensuring that certain regions of memory are distinct during
+ * debugging or runtime validation.
+ *
+ * @warning Compares raw memory. Use on types with a set and distinct size and format
+ *
+ * @param a Pointer to the first memory block.
+ * @param b Pointer to the second memory block.
+ * @param size The size of the memory blocks to compare, in bytes.
+ * @param msg The error message to display if the assertion fails.
+ */
+void mf_assert_ne(mf_assertable_t a, mf_assertable_t b, size_t size, const char* msg);
+
 #ifndef MF_NO_STACKTRACE
 
 void mf_dump_stacktrace();
@@ -726,13 +761,15 @@ inline void mf_fatal_if_null(const void* ptr, const char* msg) {
 }
 
 inline void mf_unreachable(const char* msg) {
-    fprintf(stderr, MF_RED "Unreachable code reached: %s\n" MF_RESET, msg);
+    if (!msg) fprintf(stderr, MF_RED "Unreachable code reached\n" MF_RESET);
+    else fprintf(stderr, MF_RED "Unreachable code reached: %s\n" MF_RESET, msg);
     DUMP_STACKTRACE();
     MF_ABRT();
 }
 
 inline void mf_todo(const char* msg) {
-    fprintf(stderr, MF_RED "Not yet implemented: %s\n" MF_RESET, msg);
+    if (!msg) fprintf(stderr, MF_RED "Not yet implemented" MF_RESET);
+    else fprintf(stderr, MF_RED "Not yet implemented: %s\n" MF_RESET, msg);
     DUMP_STACKTRACE();
     MF_ABRT();
 }
@@ -858,6 +895,16 @@ inline void mf_fatal_callback(mf_callback_stack* stack) {
 inline void mf_fatal_signal(int sig) {
     DUMP_STACKTRACE();
     raise(sig);
+}
+
+inline void mf_assert_eq(mf_assertable_t a, mf_assertable_t b, size_t size, const char* msg) {
+    if (memcmp(a, b, size) == 0) return;
+    mf_fatal(msg);
+}
+
+inline void mf_assert_ne(mf_assertable_t a, mf_assertable_t b, size_t size, const char* msg) {
+    if (memcmp(a, b, size) != 0) return;
+    mf_fatal(msg);
 }
 
 #ifdef __cplusplus
