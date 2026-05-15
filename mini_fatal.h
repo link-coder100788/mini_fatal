@@ -209,6 +209,12 @@ namespace mf {
 
     void mf_todo_cpp(std::string msg);
 
+    template <typename T, typename U>
+    void mf_assert_eq_cpp(T a, U b, std::string msg);
+
+    template <typename T, typename U>
+    void mf_assert_ne_cpp(T a, U b, std::string msg);
+
     class Context {
     public:
         std::vector<mf_context_item> stack;
@@ -931,6 +937,18 @@ inline void mf::mf_unreachable_cpp(std::string msg) {
 
 inline void mf::mf_todo_cpp(std::string msg) {
     mf_todo(msg.c_str());
+}
+
+template<typename T, typename U>
+void mf::mf_assert_eq_cpp(T a, U b, std::string msg) {
+    if (a == b) return;
+    mf_fatal(msg.c_str());
+}
+
+template<typename T, typename U>
+void mf::mf_assert_ne_cpp(T a, U b, std::string msg) {
+    if (a != b) return;
+    mf_fatal(msg.c_str());
 }
 
 inline void mf::Context::push(mf_context_item context) {
