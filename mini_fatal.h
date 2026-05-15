@@ -511,7 +511,7 @@ mf_callback mf_callback_pop(mf_callback_stack* stack);
 void mf_callback_destroy(mf_callback_stack* stack);
 
 /**
- * Executes all the registered callbacks in a callback stack, then generates a stack trace and aborts the program.
+ * Executes all the registered callbacks in a callback stack, then generates a stack trace, and aborts the program.
  *
  * This function iterates through each callback present in the provided callback stack
  * and executes them. After all callbacks are executed, it generates and dumps
@@ -521,6 +521,18 @@ void mf_callback_destroy(mf_callback_stack* stack);
  * @param stack A pointer to an `mf_callback_stack` structure containing the callbacks to be executed.
  */
 void mf_fatal_callback(mf_callback_stack* stack);
+
+/**
+ * Raises the specified signal, causing the program to handle it immediately.
+ *
+ * This function invokes the `raise` function with the given signal number,
+ * which triggers the corresponding signal handler or default behavior
+ * associated with that signal.
+ *
+ * @param sig The signal number to be raised. It must be a valid signal
+ *            recognized by the system.
+ */
+void mf_fatal_signal(int sig);
 
 #ifndef MF_NO_STACKTRACE
 
@@ -629,7 +641,9 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 
 #include <execinfo.h>
 #include <unistd.h>
+// ReSharper disable CppUnusedIncludeDirective
 #include <signal.h>
+// ReSharper restore CppUnusedIncludeDirective
 #define MF_POSIX 1
 
 #elif
@@ -839,6 +853,11 @@ inline void mf_fatal_callback(mf_callback_stack* stack) {
     }
     DUMP_STACKTRACE();
     MF_ABRT();
+}
+
+inline void mf_fatal_signal(int sig) {
+    DUMP_STACKTRACE();
+    raise(sig);
 }
 
 #ifdef __cplusplus
