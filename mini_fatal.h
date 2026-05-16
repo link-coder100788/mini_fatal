@@ -677,6 +677,7 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 #include <stdlib.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <string.h>
 
 #if defined(__unix__) || defined(__APPLE__)
 
