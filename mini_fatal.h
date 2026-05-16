@@ -167,7 +167,14 @@ typedef struct mf_context_item {
     pid_t pid;
 } mf_context_item;
 
-mf_context_item mf_get_context_impl(const char* msg, const char* file, int line, int col, const char* func, pthread_t thread_id, pid_t pid);
+mf_context_item mf_get_context_impl(const char* msg,
+    const char* file,
+    int line,
+    int col,
+    const char* func,
+    pthread_t thread_id,
+    pid_t pid
+);
 
 typedef struct mf_context {
     mf_context_item* data;
@@ -189,6 +196,18 @@ typedef struct mf_callback_stack {
 } mf_callback_stack;
 
 typedef void* mf_assertable_t;
+
+typedef enum mf_error_kind {
+    MF_ERROR_UNREACHABLE,
+    MF_ERROR_TODO,
+    MF_ERROR_NULL_POINTER,
+    MF_ERROR_INVALID_ARGUMENT,
+    MF_ERROR_INVALID_STATE,
+    MF_ERROR_OUT_OF_MEMORY,
+    MF_ERROR_NOT_IMPLEMENTED,
+    MF_ERROR_UNKNOWN,
+    MF_ERROR_COUNT,
+} mf_error_kind;
 
 #ifdef __cplusplus
 
@@ -626,6 +645,8 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 
 #endif
 
+void mf_fatal_type(mf_error_kind kind, const char* msg);
+
 #ifdef __cplusplus
 }
 #endif
@@ -831,11 +852,26 @@ inline void mf_context_dump(mf_context* ctx) {
     mf_fatal_if_null(ctx, "Context is null");
     for (size_t i = 0; i < ctx->size; i++) {
         mf_context_item* item = &ctx->data[i];
-        printf("%s at %s:%d:%d in %s threadid: %p pid: %d\n", item->msg, item->file, item->line, item->col, item->func, item->thread_id, item->pid);
+        printf("%s at %s:%d:%d in %s threadid: %p pid: %d\n",
+            item->msg,
+            item->file,
+            item->line,
+            item->col,
+            item->func,
+            item->thread_id,
+            item->pid
+        );
     }
 }
 
-inline mf_context_item mf_get_context_impl(const char* msg, const char* file, int line, int col, const char* func, pthread_t threadid, pid_t pid) {
+inline mf_context_item mf_get_context_impl(const char* msg,
+    const char* file,
+    int line,
+    int col,
+    const char* func,
+    pthread_t threadid,
+    pid_t pid
+) {
     mf_context_item context;
     context.msg = msg;
     context.file = file;
@@ -912,6 +948,31 @@ inline void mf_assert_eq(mf_assertable_t a, mf_assertable_t b, size_t size, cons
 inline void mf_assert_ne(mf_assertable_t a, mf_assertable_t b, size_t size, const char* msg) {
     if (memcmp(a, b, size) != 0) return;
     mf_fatal(msg);
+}
+
+inline void mf_fatal_type(mf_error_kind kind, const char* msg) {
+    switch (kind) {
+        case MF_ERROR_UNREACHABLE:
+            break;
+        case MF_ERROR_TODO:
+            break;
+        case MF_ERROR_NULL_POINTER:
+            break;
+        case MF_ERROR_INVALID_ARGUMENT:
+            break;
+        case MF_ERROR_INVALID_STATE:
+            break;
+        case MF_ERROR_OUT_OF_MEMORY:
+            break;
+        case MF_ERROR_NOT_IMPLEMENTED:
+            break;
+        case MF_ERROR_UNKNOWN:
+            break;
+        case MF_ERROR_COUNT:
+            break;
+        default:
+            mf_fatal_at("Unknown error kind");
+    }
 }
 
 #ifdef __cplusplus

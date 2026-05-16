@@ -100,8 +100,7 @@ int error_code = 2;
 
 Example output:
 
-```
-text
+```text
 Fatal error: failed to open 'config.json' with error code 2
 <stack trace if enabled and supported>
 ```
