@@ -234,6 +234,10 @@ namespace mf {
     template <typename T, typename U>
     void mf_assert_ne_cpp(T a, U b, std::string msg);
 
+    void mf_assert_eq_expr_cpp(std::function<bool()> func, std::string msg);
+
+    void mf_assert_ne_expr_cpp(std::function<bool()> func, std::string msg);
+
     class Context {
     public:
         std::vector<mf_context_item> stack;
@@ -1010,6 +1014,16 @@ void mf::mf_assert_eq_cpp(T a, U b, std::string msg) {
 template<typename T, typename U>
 void mf::mf_assert_ne_cpp(T a, U b, std::string msg) {
     if (a != b) return;
+    mf_fatal(msg.c_str());
+}
+
+inline void mf::mf_assert_eq_expr_cpp(std::function<bool()> func, std::string msg) {
+    if (func()) return;
+    mf_fatal(msg.c_str());
+}
+
+inline void mf::mf_assert_ne_expr_cpp(std::function<bool()> func, std::string msg) {
+    if (!func()) return;
     mf_fatal(msg.c_str());
 }
 
