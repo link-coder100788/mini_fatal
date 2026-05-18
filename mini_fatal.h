@@ -661,7 +661,9 @@ void mf_fatal_type(mf_error_kind kind, const char* msg);
 
 #else
 
+#ifndef DUMP_STACKTRACE
 #define DUMP_STACKTRACE() mf_dump_stacktrace()
+#endif
 
 #endif
 
@@ -706,11 +708,11 @@ void mf_fatal_type(mf_error_kind kind, const char* msg);
 
 #if defined(__unix__) || defined(__APPLE__)
 
+#ifndef MF_NO_STACKTRACE
 #include <execinfo.h>
+#endif
 #include <unistd.h>
-// ReSharper disable CppUnusedIncludeDirective
 #include <signal.h>
-// ReSharper restore CppUnusedIncludeDirective
 #define MF_POSIX 1
 
 #elif
