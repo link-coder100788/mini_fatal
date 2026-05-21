@@ -209,6 +209,12 @@ typedef enum mf_error_kind {
     MF_ERROR_COUNT,
 } mf_error_kind;
 
+typedef enum mf_color {
+    RED,
+    YELLOW,
+    RESET
+} mf_color;
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -651,13 +657,17 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 
 void mf_fatal_type(mf_error_kind kind, const char* msg);
 
+void mf_get_color(mf_color color, char* txt);
+
 #ifdef __cplusplus
 }
 #endif
 
 #ifdef MF_NO_STACKTRACE
 
+#ifndef DUMP_STACKTRACE
 #define DUMP_STACKTRACE() ((void) 0)
+#endif
 
 #else
 
@@ -672,9 +682,15 @@ void mf_fatal_type(mf_error_kind kind, const char* msg);
 #endif
 
 #ifndef MF_DISABLE_COLOR
+#ifndef MF_RED
 #define MF_RED "\033[31m"
+#endif
+#ifndef MF_YELLOW
 #define MF_YELLOW "\033[33m"
+#endif
+#ifndef MF_RESET
 #define MF_RESET "\033[0m"
+#endif
 #else
 #define MF_RED ""
 #define MF_YELLOW ""
@@ -978,6 +994,22 @@ inline void mf_fatal_type(mf_error_kind kind, const char* msg) {
             break;
         default:
             mf_fatal_at("Unknown error kind");
+    }
+}
+
+inline void mf_get_color(mf_color color, char* txt) {
+    switch (color) {
+        case RED:
+            strcpy(txt, "\033[31m");
+            break;
+        case YELLOW:
+            strcpy(txt, "\033[33m");
+            break;
+        case RESET:
+            strcpy(txt, "\033[0m");
+            break;
+        default:
+            return;
     }
 }
 
