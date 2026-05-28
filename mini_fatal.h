@@ -215,6 +215,18 @@ typedef enum mf_color {
     RESET
 } mf_color;
 
+void mf_warning_at_impl(const char* msg, const char* file, int line, const char* func);
+
+typedef enum mf_net_type {
+    MF_TCP = 1,
+    MF_UDP = 0,
+} mf_net_type;
+
+typedef struct mf_net_dest {
+    const char* host;
+    uint16_t port;
+} mf_net_dest;
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -659,6 +671,16 @@ void mf_fatal_type(mf_error_kind kind, const char* msg);
 
 void mf_get_color(mf_color color, char* txt);
 
+#define mf_warning_at(msg) mf_warning_at_impl(msg, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+
+#ifndef MF_DISABLE_NET
+
+void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest);
+
+#define mf_fatal_net_json(usr_json, type, dest) mf_fatal_net_json_impl(usr_json, type, dest, __FILE__, __LINE__, __PRETTY_FUNCTION__, getpid())
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -721,6 +743,8 @@ void mf_get_color(mf_color color, char* txt);
 #include <stdarg.h>
 #include <signal.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #if defined(__unix__) || defined(__APPLE__)
 
@@ -1012,6 +1036,86 @@ inline void mf_get_color(mf_color color, char* txt) {
             return;
     }
 }
+
+inline void mf_warning_at_impl(const char* msg, const char* file, int line, const char* func) {
+    fprintf(stderr, MF_YELLOW "Warning at " MF_RESET MF_RED "%s__%s:%d" MF_RESET MF_YELLOW ": %s\n" MF_RESET, file, func, line, msg);
+    DUMP_STACKTRACE();
+}
+
+#ifndef MF_DISABLE_NET
+
+inline void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest) {
+    switch (type) {
+        case MF_TCP: {
+            struct addrinfo hints = {0}, *res;
+            int sock;
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_socktype = SOCK_STREAM;
+            if (getaddrinfo(dest.host, NULL, &hints, &res) != 0) { mf_warning_at("Failed to resolve host"); return; }
+            ((struct sockaddr_in*)res->ai_addr)->sin_port = htons(dest.port);
+            sock = socket(res->ai_family, res->ai_socktype, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            if (connect(sock, res->ai_addr, res->ai_addrlen) < 0) { close(sock); mf_warning_at("Failed to connect"); return; }
+            send(sock, msg, strlen(msg), 0);
+            close(sock);
+            freeaddrinfo(res);
+            break;
+        }
+        case MF_UDP: {
+            int sock = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            struct sockadrr_in addr = {0};
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(dest.port);
+            inet_pton(AF_INET, dest.host, &addr.sin_addr);
+            sendto(sock, msg, strlen(msg), 0, (struct sockaddr*)&addr, sizeof(addr));
+            close(sock);
+            break;
+        }
+        default: {
+            mf_fatal_at("Unknown net type");
+        }
+    }
+}
+
+inline void mf_fatal_net_json_impl(const char* usr_json, mf_net_type type, mf_net_dest dest, const char* file, int line, const char* func, int pid) {
+    char buf[1024];
+    const char* uj = usr_json ? usr_json : "{}";
+    snprintf(buf, sizeof(buf), "{" "\"file\":\"%s\"," "\"line\":\"%d\"," "\"function\":\"%s\"," "\"pid\":\"%d\"," "\"user\":%s" "}", file, line, func, pid, uj);
+    switch (type) {
+        case MF_TCP: {
+            struct addrinfo hints = {0}, *res;
+            int sock;
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_socktype = SOCK_STREAM;
+            if (getaddrinfo(dest.host, NULL, &hints, &res) != 0) { mf_warning_at("Failed to resolve host"); return; }
+            ((struct sockaddr_in*)res->ai_addr)->sin_port = htons(dest.port);
+            sock = socket(res->ai_family, res->ai_socktype, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            if (connect(sock, res->ai_addr, res->ai_addrlen) < 0) { close(sock); mf_warning_at("Failed to connect"); return; }
+            send(sock, buf, strlen(buf), 0);
+            close(sock);
+            freeaddrinfo(res);
+            break;
+        }
+        case MF_UDP: {
+            int sock = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            struct sockadrr_in addr = {0};
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(dest.port);
+            inet_pton(AF_INET, dest.host, &addr.sin_addr);
+            sendto(sock, buf, strlen(buf), 0, (struct sockaddr*)&addr, sizeof(addr));
+            close(sock);
+            break;
+        }
+        default: {
+            mf_fatal_at("Unknown net type");
+        }
+    }
+}
+
+#endif
 
 #ifdef __cplusplus
 
