@@ -232,8 +232,14 @@ typedef struct mf_net_dest {
 #include <vector>
 #include <iostream>
 #include <ostream>
+#include <sstream>
 
 namespace mf {
+    enum class mf_net_type_cpp {
+        MF_TCP,
+        MF_UDP,
+    };
+
     void mf_version_cpp();
 
     void mf_fatal_cpp(std::string msg);
@@ -255,6 +261,8 @@ namespace mf {
     void mf_assert_eq_expr_cpp(std::function<bool()> func, std::string msg);
 
     void mf_assert_ne_expr_cpp(std::function<bool()> func, std::string msg);
+
+    void mf_fatal_net_cpp(std::string msg, mf_net_type_cpp type, mf_net_dest dest);
 
     class Context {
     public:
@@ -281,6 +289,25 @@ namespace mf {
         static Callbacks from_c_callbacks(mf_callback_stack* stack);
         mf_callback_stack to_c_callbacks(size_t cap);
     };
+
+    namespace json {
+        class JsonBuilder {
+            std::ostringstream oss;
+            bool first = true;
+
+            void comma();
+            static std::string escape(const std::string& s);
+        public:
+            JsonBuilder();
+
+            JsonBuilder& add_s(const std::string& key, const std::string& value);
+            JsonBuilder& add_i(const std::string& key, int value);
+            JsonBuilder& add_d(const std::string& key, double value);
+            JsonBuilder& add_r(const std::string& key, const std::string& raw_json);
+
+            std::string str();
+        };
+    }
 }
 
 extern "C" {
@@ -1165,6 +1192,40 @@ inline void mf::mf_assert_ne_expr_cpp(std::function<bool()> func, std::string ms
     mf_fatal(msg.c_str());
 }
 
+inline void mf::mf_fatal_net_cpp(std::string msg, mf_net_type_cpp type, mf_net_dest dest) {
+    switch (type) {
+        case mf_net_type_cpp::MF_TCP: {
+            struct addrinfo hints = {0}, *res;
+            int sock;
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_socktype = SOCK_STREAM;
+            if (getaddrinfo(dest.host, NULL, &hints, &res) != 0) { mf_warning_at("Failed to resolve host"); return; }
+            ((struct sockaddr_in*)res->ai_addr)->sin_port = htons(dest.port);
+            sock = socket(res->ai_family, res->ai_socktype, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            if (connect(sock, res->ai_addr, res->ai_addrlen) < 0) { close(sock); mf_warning_at("Failed to connect"); return; }
+            send(sock, msg.c_str(), strlen(msg.c_str()), 0);
+            close(sock);
+            freeaddrinfo(res);
+            break;
+        }
+        case mf_net_type_cpp::MF_UDP: {
+            int sock = socket(AF_INET, SOCK_DGRAM, 0);
+            if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
+            struct sockaddr_in addr = {0};
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(dest.port);
+            inet_pton(AF_INET, dest.host, &addr.sin_addr);
+            sendto(sock, msg.c_str(), strlen(msg.c_str()), 0, (struct sockaddr*)&addr, sizeof(addr));
+            close(sock);
+            break;
+        }
+        default: {
+            mf_fatal_at("Unknown net type");
+        }
+    }
+}
+
 inline void mf::Context::push(mf_context_item context) {
     stack.push_back(context);
 }
@@ -1262,6 +1323,52 @@ inline mf_callback_stack mf::Callbacks::to_c_callbacks(size_t cap) {
         mf_callback_push(&callbacks, mf_callback { c.cb });
     }
     return callbacks;
+}
+
+inline void mf::json::JsonBuilder::comma() {
+    if (!first) oss << ",";
+    first = false;
+}
+
+inline std::string mf::json::JsonBuilder::escape(const std::string& s) {
+    std::string out;
+    for (char c : s) {
+        if (c == '"' || c == '\\') out += '\\';
+        out += c;
+    }
+    return out;
+}
+
+inline mf::json::JsonBuilder::JsonBuilder() {
+    oss << "{";
+}
+
+inline mf::json::JsonBuilder& mf::json::JsonBuilder::add_s(const std::string& key, const std::string& value) {
+    comma();
+    oss << "\"" << key << "\":\"" << escape(value) << "\"";
+    return *this;
+}
+
+inline mf::json::JsonBuilder& mf::json::JsonBuilder::add_i(const std::string& key, int value) {
+    comma();
+    oss << "\"" << key << "\":" << value;
+    return *this;
+}
+
+inline mf::json::JsonBuilder& mf::json::JsonBuilder::add_d(const std::string& key, double value) {
+    comma();
+    oss << "\"" << key << "\":" << value;
+    return *this;
+}
+
+inline mf::json::JsonBuilder& mf::json::JsonBuilder::add_r(const std::string& key, const std::string& raw_json) {
+    comma();
+    oss << "\"" << key << "\":" << raw_json;
+    return *this;
+}
+
+inline std::string mf::json::JsonBuilder::str() {
+    return oss.str() + "}";
 }
 
 #endif
