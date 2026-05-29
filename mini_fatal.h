@@ -233,6 +233,7 @@ typedef struct mf_net_dest {
 #include <iostream>
 #include <ostream>
 #include <sstream>
+#include <fstream>
 
 namespace mf {
     enum class mf_net_type_cpp {
@@ -307,6 +308,8 @@ namespace mf {
 
             std::string str();
         };
+
+        int mf_save_json(JsonBuilder& jb, std::string path);
     }
 }
 
@@ -694,14 +697,64 @@ static long mf_print_stderr__apple_arm64(const char* data, size_t len) {
 
 #endif
 
+/**
+ * Handles fatal errors based on the provided error kind and outputs the associated error message.
+ *
+ * Depending on the specified `kind` of error, this function can assess and act on various predefined
+ * error types or report an unknown error if the system does not recognize the kind.
+ * This function facilitates the identification and debugging of fatal issues during program execution.
+ * If an unknown error kind is encountered, the function will abort the program and include a stack trace.
+ *
+ * @param kind The category of error represented as an `mf_error_kind` enumeration value.
+ *             This dictates the type of handling or reporting performed by the function.
+ * @param msg A descriptive message providing additional context about the error.
+ */
 void mf_fatal_type(mf_error_kind kind, const char* msg);
 
+/**
+ * Retrieves the ANSI escape code for the specified color and stores it in the provided text buffer.
+ *
+ * This function maps the given mf_color value to its corresponding ANSI escape code
+ * and writes the result to the provided character buffer. The escape codes can
+ * be used for terminal text color manipulation.
+ *
+ * @param color The color enum value (e.g., RED, YELLOW, RESET) for which the escape code is needed.
+ * @param txt A character buffer where the corresponding ANSI escape code is stored.
+ *            The buffer should have enough space to hold the escape code.
+ */
 void mf_get_color(mf_color color, char* txt);
 
 #define mf_warning_at(msg) mf_warning_at_impl(msg, __FILE__, __LINE__, __PRETTY_FUNCTION__)
 
 #ifndef MF_DISABLE_NET
 
+/**
+ * @brief Sends a message over the network using the specified protocol and destination.
+ *
+ * This function allows sending messages over either TCP or UDP based on the
+ * provided `mf_net_type`. It resolves the host and establishes a connection
+ * (for TCP) or sends the message directly (for UDP).
+ *
+ * - For `MF_TCP`:
+ *   - Resolves the provided host using `getaddrinfo`.
+ *   - Creates a socket and connects to the destination.
+ *   - Sends the message via the TCP connection.
+ *   - Cleans up allocated resources.
+ *
+ * - For `MF_UDP`:
+ *   - Creates a socket and sets up the connection using `sockaddr_in`.
+ *   - Sends the message via the UDP protocol.
+ *
+ * If an error occurs at any stage (e.g., resolving the host, creating a socket,
+ * connecting, or sending), a warning is printed, and the function returns immediately.
+ *
+ * @param msg The message to be sent over the network.
+ * @param type The network type (`MF_TCP` or `MF_UDP`) used for sending the message.
+ * @param dest The destination details consisting of the host and port.
+ *
+ * @warning Unix only - This function uses unix system calls and will most likely only
+ * work on unix systems
+ */
 void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest);
 
 #define mf_fatal_net_json(usr_json, type, dest) mf_fatal_net_json_impl(usr_json, type, dest, __FILE__, __LINE__, __PRETTY_FUNCTION__, getpid())
@@ -779,7 +832,6 @@ void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest);
 #include <execinfo.h>
 #endif
 #include <unistd.h>
-#include <signal.h>
 #define MF_POSIX 1
 
 #elif
@@ -1369,6 +1421,14 @@ inline mf::json::JsonBuilder& mf::json::JsonBuilder::add_r(const std::string& ke
 
 inline std::string mf::json::JsonBuilder::str() {
     return oss.str() + "}";
+}
+
+inline int mf::json::mf_save_json(JsonBuilder& jb, std::string path) {
+    std::ofstream file(path);
+    if (!file) return -1;
+    file << jb.str();
+    file.close();
+    return 0;
 }
 
 #endif
