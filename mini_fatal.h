@@ -1101,7 +1101,7 @@ inline void mf_fatal_net_json_impl(const char* usr_json, mf_net_type type, mf_ne
         case MF_UDP: {
             int sock = socket(AF_INET, SOCK_DGRAM, 0);
             if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
-            struct sockadrr_in addr = {0};
+            struct sockaddr_in addr = {0};
             addr.sin_family = AF_INET;
             addr.sin_port = htons(dest.port);
             inet_pton(AF_INET, dest.host, &addr.sin_addr);
