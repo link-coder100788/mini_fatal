@@ -1038,7 +1038,7 @@ inline void mf_get_color(mf_color color, char* txt) {
 }
 
 inline void mf_warning_at_impl(const char* msg, const char* file, int line, const char* func) {
-    fprintf(stderr, MF_YELLOW "Warning at " MF_RESET MF_RED "%s__%s:%d" MF_RESET MF_YELLOW ": %s\n" MF_RESET, file, func, line, msg);
+    fprintf(stderr, MF_YELLOW "Warning at " MF_RESET MF_RED "%s:%d in %s" MF_RESET MF_YELLOW ": %s\n" MF_RESET, file, line, func, msg);
     DUMP_STACKTRACE();
 }
 
@@ -1064,7 +1064,7 @@ inline void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest) {
         case MF_UDP: {
             int sock = socket(AF_INET, SOCK_DGRAM, 0);
             if (sock < 0) { mf_warning_at("Failed to create socket"); return; }
-            struct sockadrr_in addr = {0};
+            struct sockaddr_in addr = {0};
             addr.sin_family = AF_INET;
             addr.sin_port = htons(dest.port);
             inet_pton(AF_INET, dest.host, &addr.sin_addr);
