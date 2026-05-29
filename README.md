@@ -22,10 +22,24 @@ It provides a minimal fatal-error API that prints a clear diagnostic message, op
   Emit a best-effort stack trace on supported platforms.
 
 - **Compile-time configuration**  
-  Disable stack trace support when it is not needed or not available.
+  Disable stack trace support when it is unnecessary or not available.
 
 - **Minimal API surface**  
   Designed to be easy to understand, extend, and embed.
+
+- **Configurable**
+  - Enable or disable stack trace support at compile time.
+  - Change the default abort behavior.
+  - Customize the output format.
+  - Enable or disable networking.
+
+- **Cross-platform**  
+  Supports POSIX-like systems.
+
+- **No dependencies** 
+
+- **No runtime overhead**
+  - Functions are all marked `inline`.
 
 ## Use Cases
 
