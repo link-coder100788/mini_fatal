@@ -52,6 +52,8 @@
  * interop.
  */
 
+import os
+
 #flag @VMODROOT/v_test_helper.c
 #include "@VMODROOT/../../mini_fatal.h"
 
@@ -76,8 +78,33 @@ fn mf_warning_at(msg string, file string, line int, func string) {
 	C.mf_warning_at_impl(msg.str, file.str, line, func.str)
 }
 
+struct C.mf_context_item {
+	msg &char
+	file &char
+	line int
+	col int
+	func &char
+	thread_id int
+	pid int
+}
+
+struct C.mf_context {
+	data &C.mf_context_item
+	size usize
+	capacity usize
+}
+
+fn C.mf_create_context(cap usize) C.mf_context
+fn C.mf_context_push(ctx &C.mf_context, item C.mf_context_item)
+fn C.mf_context_dump(ctx &C.mf_context)
+fn C.mf_context_destroy(ctx &C.mf_context)
+
 fn main() {
 	println("Testing mini_fatal from v!")
+	ctx := C.mf_create_context(10)
+	C.mf_context_push(&ctx, C.mf_context_item{"Testing context!".str, @FILE.str, @LINE.int(), @COLUMN.int(), @FN.str, 0, os.getpid()})
+	C.mf_context_dump(&ctx)
+	C.mf_context_destroy(&ctx)
 	mf_warning_at("About to fatal abort!", @FILE, @LINE.int(), @FN)
 	mf_fatal_at("Fatal error HERE!", @FILE, @LINE.int())
 }

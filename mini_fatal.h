@@ -227,6 +227,10 @@ typedef struct mf_net_dest {
     uint16_t port;
 } mf_net_dest;
 
+typedef struct mf_store_context {
+    const char* msg;
+} mf_store_context;
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -761,6 +765,12 @@ void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest);
 
 #endif
 
+#ifdef MF_ENABLE_SQLITE
+
+#include <sqlite3.h>
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -1193,6 +1203,10 @@ inline void mf_fatal_net_json_impl(const char* usr_json, mf_net_type type, mf_ne
         }
     }
 }
+
+#endif
+
+#ifndef MF_ENABLE_SQLITE
 
 #endif
 
