@@ -231,6 +231,12 @@ typedef struct mf_store_context {
     const char* msg;
 } mf_store_context;
 
+#ifdef MF_ENABLE_SQLITE
+
+void mf_fatal_store_impl(void* db, const char* msg, const char* file, int line, const char* func);
+
+#endif
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -769,6 +775,10 @@ void mf_fatal_net(const char* msg, mf_net_type type, mf_net_dest dest);
 
 #include <sqlite3.h>
 
+void mf_sqlite_create_table(sqlite3* db);
+
+#define mf_fatal_store(db, msg) mf_fatal_store_impl(db, msg, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+
 #endif
 
 #ifdef __cplusplus
@@ -1206,7 +1216,39 @@ inline void mf_fatal_net_json_impl(const char* usr_json, mf_net_type type, mf_ne
 
 #endif
 
-#ifndef MF_ENABLE_SQLITE
+#ifdef MF_ENABLE_SQLITE
+
+inline void mf_sqlite_create_table(sqlite3* db) {
+    char* errMsg;
+    const char* sql = "CREATE TABLE IF NOT EXISTS mf_errors (id INTEGER PRIMARY KEY, usr_message TEXT, file TEXT, line INT, func TEXT, time TIMESTAMP DEFAULT CURRENT_TIMESTAMP);";
+    int rc = sqlite3_exec(db, sql, NULL, NULL, &errMsg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "SQL error: %s\n", errMsg);
+        mf_warning_at("Failed to create table");
+    }
+    sqlite3_free(errMsg);
+}
+
+inline void mf_fatal_store_impl(void* db, const char* msg, const char* file, int line, const char* func) {
+    mf_fatal_if_null(db, "Database is null");
+    sqlite3* db2 = (sqlite3*)db;
+    const char* sql = "INSERT INTO mf_errors (usr_message, file, line, func) VALUES (?, ?, ?, ?);";
+    sqlite3_stmt* stmt;
+    int rc = sqlite3_prepare_v2(db2, sql, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        mf_warning_at("Failed to prepare statement");
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, msg, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, file, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 3, line);
+    sqlite3_bind_text(stmt, 4, func, -1, SQLITE_TRANSIENT);
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        mf_warning_at("Failed to store error");
+    }
+    sqlite3_finalize(stmt);
+}
 
 #endif
 
