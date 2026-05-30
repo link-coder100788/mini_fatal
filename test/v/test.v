@@ -99,6 +99,19 @@ fn C.mf_context_push(ctx &C.mf_context, item C.mf_context_item)
 fn C.mf_context_dump(ctx &C.mf_context)
 fn C.mf_context_destroy(ctx &C.mf_context)
 
+struct C.mf_event {
+	session_id usize
+	msg &char
+	file &char
+	line int
+	func &char
+	pid int
+	threadid usize
+	usr_json &char
+	timestamp usize
+	char full[1024]
+}
+
 fn main() {
 	println("Testing mini_fatal from v!")
 	ctx := C.mf_create_context(10)

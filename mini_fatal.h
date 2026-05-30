@@ -237,6 +237,23 @@ void mf_fatal_store_impl(void* db, const char* msg, const char* file, int line, 
 
 #endif
 
+typedef uint64_t mf_session_id;
+
+typedef struct mf_event {
+    mf_session_id session_id;
+    const char* msg;
+    const char* file;
+    int line;
+    const char* func;
+    int pid;
+    unsigned long threadId;
+    const char* usr_json;
+    time_t timestamp;
+    char full[1024];
+} mf_event;
+
+mf_event mf_get_event_impl(mf_session_id id, const char* msg, const char* file, int line, const char* func, int pid, unsigned long threadId, const char* usr_json, time_t timestamp);
+
 #ifdef __cplusplus
 
 #include <vector>
@@ -781,6 +798,8 @@ void mf_sqlite_create_table(sqlite3* db);
 
 #endif
 
+#define mf_get_event(id, msg, usr_json) mf_get_event_impl(id, msg, __FILE__, __LINE__, __PRETTY_FUNCTION__, getpid(), (unsigned long long)(uintptr_t)pthread_self(), usr_json, time(NULL))
+
 #ifdef __cplusplus
 }
 #endif
@@ -1251,6 +1270,22 @@ inline void mf_fatal_store_impl(void* db, const char* msg, const char* file, int
 }
 
 #endif
+
+inline mf_event mf_get_event_impl(mf_session_id id, const char* msg, const char* file, int line, const char* func, int pid, unsigned long threadId, const char* usr_json, time_t timestamp) {
+    mf_event event = {
+        .session_id = id,
+        .msg = msg,
+        .file = file,
+        .line = line,
+        .func = func,
+        .pid = pid,
+        .threadId = threadId,
+        .usr_json = usr_json,
+        .timestamp = timestamp
+    };
+    snprintf(event.full, sizeof(event.full), "sid=%llu msg=%s, file=%s, line=%d, func=%s, pid=%d, tid=%lu, usr_json=%s, timestamp=%lu", id, msg ? msg : "" , file ? file : "", line, func ? func : "", pid, threadId, usr_json ? usr_json : "", (long)timestamp);
+    return event;
+}
 
 #ifdef __cplusplus
 

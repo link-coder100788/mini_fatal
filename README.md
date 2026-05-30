@@ -186,6 +186,14 @@ When stack traces are disabled, fatal functions still print the error message an
 
 Stack traces are implemented using platform-specific APIs where available.
 
+## Platform Issues
+
+If you encounter any issues with the library on a specific platform, please fill out an issue.
+I will do my best to address them as quickly as possible.
+See Contributing for more information.
+
+Thanks!
+
 ## C++ Usage
 
 `mini_fatal` can be included from C++ code:
