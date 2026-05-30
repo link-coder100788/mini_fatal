@@ -1,0 +1,10 @@
+//
+// Created by Noah Pegna on 5/30/26.
+//
+
+#ifndef MINI_FATAL_MFFATALSWIFT_BRIDGING_HEADER_H
+#define MINI_FATAL_MFFATALSWIFT_BRIDGING_HEADER_H
+
+#include "../../mini_fatal.h"
+
+#endif //MINI_FATAL_MFFATALSWIFT_BRIDGING_HEADER_H
