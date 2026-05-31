@@ -338,6 +338,25 @@ namespace mf {
 
         int mf_save_json(JsonBuilder& jb, std::string path);
     }
+
+    class MfFatalError : public std::runtime_error {
+    public:
+        MfFatalError(std::string msg) : std::runtime_error(msg) {};
+        MfFatalError(std::string msg, std::string file, int line) : std::runtime_error(std::format("{} in {}:{}", msg, file, line)) {};
+        MfFatalError(std::string msg, std::string file, int line, std::string func) : std::runtime_error(std::format("{} in {}:{} {}", msg, file, line, func)) {};
+    };
+
+    void mf_fatal_cpp_throw(std::string msg);
+
+    void mf_fatal_if_null_cpp_throw(const void* ptr, std::string msg);
+
+    void mf_fatal_if_cpp_throw(int condition, std::string msg);
+
+    template <typename T>
+    void mf_fatal_if_null_cpp_cast(T* ptr, std::string msg);
+
+    template <typename T>
+    void mf_fatal_if_null_cpp_cast_throw(T* ptr, std::string msg);
 }
 
 extern "C" {
@@ -1520,6 +1539,28 @@ inline int mf::json::mf_save_json(JsonBuilder& jb, std::string path) {
     file << jb.str();
     file.close();
     return 0;
+}
+
+inline void mf::mf_fatal_cpp_throw(std::string msg) {
+    throw MfFatalError(msg);
+}
+
+inline void mf::mf_fatal_if_null_cpp_throw(const void* ptr, std::string msg) {
+    if (!ptr) throw MfFatalError(msg);
+}
+
+inline void mf::mf_fatal_if_cpp_throw(int condition, std::string msg) {
+    if (condition) throw MfFatalError(msg);
+}
+
+template<typename T>
+void mf::mf_fatal_if_null_cpp_cast(T* ptr, std::string msg) {
+    if (!ptr) mf_fatal_cpp(msg);
+}
+
+template<typename T>
+void mf::mf_fatal_if_null_cpp_cast_throw(T* ptr, std::string msg) {
+    if (!ptr) throw MfFatalError(msg);
 }
 
 #endif
