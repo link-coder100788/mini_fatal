@@ -109,7 +109,7 @@ struct C.mf_event {
 	threadid usize
 	usr_json &char
 	timestamp usize
-	char full[1024]
+	full[1024] char
 }
 
 fn main() {
